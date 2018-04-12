@@ -10,6 +10,7 @@ import UIKit
 import UserNotifications
 import Firebase
 import Fabric
+import FirebaseFirestore
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -29,6 +30,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         let token = Messaging.messaging().fcmToken
         print("FCM token: \(token ?? "")")
+
+        let db = Firestore.firestore()
+        print(db)
+
         return true
     }
 
