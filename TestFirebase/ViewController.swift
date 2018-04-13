@@ -32,6 +32,13 @@ class ViewController: UIViewController {
             button.addTarget(self, action: #selector(self.setButtonTapped(_:)), for: .touchUpInside)
             view.addSubview(button)
         }
+        do {
+            let button = UIButton(type: .roundedRect)
+            button.frame = CGRect(x: 20, y: 150, width: 100, height: 30)
+            button.setTitle("Query", for: [])
+            button.addTarget(self, action: #selector(self.queryButtonTapped(_:)), for: .touchUpInside)
+            view.addSubview(button)
+        }
         db = Firestore.firestore()
     }
 
@@ -45,19 +52,34 @@ class ViewController: UIViewController {
     }
 
     @IBAction func setButtonTapped(_ sender: AnyObject) {
-        addAdaLovelace()
-        addAlanTuring()
-        getCollection()
+//        addAdaLovelace()
+//        addAlanTuring()
+//        getCollection()
 
-        setDocument()
-        dataTypes()
-        setData()
-        addDocument()
-        newDocument()
-        updateDocument()
-        createIfMissing()
-        updateDocumentNested()
-        serverTimestamp()
+//        setDocument()
+//        dataTypes()
+//        setData()
+//        addDocument()
+//        newDocument()
+//        updateDocument()
+//        createIfMissing()
+//        updateDocumentNested()
+//        serverTimestamp()
+
+        deleteDocument()
+        deleteField()
+    }
+
+    @IBAction func queryButtonTapped(_ sender: AnyObject) {
+//        exampleData()
+//        getDocument()
+//        getMultiple()
+//        getMultipleAll()
+//        listenDocument()
+//        listenDocumentLocal()
+//        listenMultiple()
+//        listenDiffs()
+        detachListener()
     }
 }
 
@@ -211,6 +233,26 @@ extension ViewController {
             }
         }
     }
+    func deleteDocument() {
+        db.collection("cities").document("DC").delete { (err) in
+            if let err = err {
+                print("Error removing document: \(err)")
+            } else {
+                print("Document successfully removed!")
+            }
+        }
+    }
+    func deleteField() {
+        db.collection("cities").document("BJ").updateData([
+            "capital": FieldValue.delete()
+        ]) { (err) in
+            if let err = err {
+                print("Error updating document: \(err)")
+            } else {
+                print("Document successfully updated")
+            }
+        }
+    }
 }
 
 extension ViewController {
@@ -264,5 +306,89 @@ extension ViewController {
                 print("Document does not exist")
             }
         }
+    }
+
+    func getMultiple() {
+        db.collection("cities").whereField("capital", isEqualTo: true)
+            .getDocuments { (querySnapshot, err) in
+                if let err = err {
+                    print("Error getting documents: \(err)")
+                } else {
+                    for document in querySnapshot!.documents {
+                        print("\(document.documentID) => \(document.data())")
+                    }
+                }
+        }
+    }
+
+    func getMultipleAll() {
+        db.collection("cities").getDocuments { (querySnapshot, err) in
+            if let err = err {
+                print("Error getting documents: \(err)")
+            } else {
+                for document in querySnapshot!.documents {
+                    print("\(document.documentID) => \(document.data())")
+                }
+            }
+        }
+    }
+
+    func listenDocument() {
+        db.collection("cities").document("SF")
+            .addSnapshotListener { (documentSnapshot, err) in
+                guard let document = documentSnapshot else {
+                    print("Error fetching document: \(err!)")
+                    return
+                }
+                print("Current data: \(document.data() as Any)")
+        }
+    }
+    func listenDocumentLocal() {
+        db.collection("cities").document("SF")
+            .addSnapshotListener { (documentSnapshot, err) in
+                guard let document = documentSnapshot else {
+                    print("Error fetching document: \(err!)")
+                    return
+                }
+                let source = document.metadata.hasPendingWrites ? "Local" : "Server"
+                print("\(source) data: \(document.data() as Any)")
+        }
+    }
+    func listenMultiple() {
+        db.collection("cities").whereField("state", isEqualTo: "CA")
+            .addSnapshotListener { (querySnapshot, err) in
+                guard let documents = querySnapshot?.documents else {
+                    print("Error fetching documents: \(err as Any)")
+                    return
+                }
+                let cities = documents.map({ $0["name"]! })
+                print("Current cities in CA: \(cities)")
+        }
+    }
+    func listenDiffs() {
+        db.collection("cities").whereField("state", isEqualTo: "CA")
+            .addSnapshotListener { (querySnapshot, err) in
+                guard let snapshot = querySnapshot else {
+                    print("Error fetching snapshots: \(err!)")
+                    return
+                }
+                snapshot.documentChanges.forEach({ (diff) in
+                    if diff.type == .added {
+                        print("New city: \(diff.document.data())")
+                    }
+                    if diff.type == .modified {
+                        print("Modifired city: \(diff.document.data())")
+                    }
+                    if diff.type == .removed {
+                        print("Removed city: \(diff.document.data())")
+                    }
+                })
+        }
+    }
+    func detachListener() {
+        let listener = db.collection("cities").addSnapshotListener { (q, e) in
+            print("Listen")
+        }
+        listener.remove()
     }
 }
